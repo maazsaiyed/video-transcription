@@ -1,1 +1,2 @@
-# video-transcription
+# Video Transcription
+Ongoing learning project.
