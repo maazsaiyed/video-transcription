@@ -7,15 +7,12 @@ from annotation.image import ImageAnnotate
 
 
 class ReadVideo:
-    def __init__(self):
-        pass
 
     def from_webcam(self) -> None:
         """Capture live video from webcam and processes for face detection."""
         cap = cv2.VideoCapture(1)
 
         face_det = FaceDetection()
-        image_annotation = ImageAnnotate()
 
         try:
             while True:
@@ -24,7 +21,7 @@ class ReadVideo:
                 # detect faces from image
                 location = face_det.detect(img)
                 # draw bounding box
-                img = image_annotation.annotate(img, location)
+                img = ImageAnnotate.rectangle(img, location)
                 # display picture
                 cv2.imshow("img", img)
                 # Wait for Esc k`ey to stop
@@ -38,7 +35,7 @@ class ReadVideo:
                 cap.release()
                 cv2.destroyAllWindows()
 
-    def from_path(self, file_path: str, fps: int = 5) -> None:
+    def from_path(self, file_path: str, fps: int = 30) -> None:
         """Reads video file from a file path and processes for face detection."""
         if not os.path.isfile(file_path):
             raise FileNotFoundError("Video file not available")
@@ -47,7 +44,6 @@ class ReadVideo:
         frame_count = 0
 
         face_det = FaceDetection()
-        image_annotation = ImageAnnotate()
 
         try:
             while cap.isOpened():
@@ -58,9 +54,24 @@ class ReadVideo:
                 frame_count = frame_count + 1
                 if frame_count % fps == 0:
                     # detect faces from image
-                    location = face_det.detect(img)
-                    # draw bounding box
-                    img = image_annotation.annotate(img, location)
+                    face_locations = face_det.detect(img)
+
+                    for face_loc in face_locations:
+                        # draw bounding box
+                        img = ImageAnnotate.rectangle(img, face_loc)
+
+                        # face recognition for each detected face
+                        crop_image = img[
+                            face_loc.get_top_left.y : face_loc.get_bottom_right.y,
+                            face_loc.get_top_left.x : face_loc.get_bottom_right.x
+                        ]
+                        crop_image = cv2.cvtColor(crop_image, cv2.COLOR_BGR2RGB)
+                        recognized_face = face_det.recognize(crop_image)
+
+                        if recognized_face:
+                            # write text
+                            img = ImageAnnotate.text(img, text=str(recognized_face["id"]), location=face_loc.get_top_left)
+
                     # display picture
                     cv2.imshow("img", img)
                     # Wait for Esc k`ey to stop
